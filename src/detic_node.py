@@ -1,4 +1,4 @@
-#!/usr/local/bin/python3.10
+#!/usr/bin/env python
 import os
 import sys
 
@@ -13,9 +13,9 @@ from detectron2 import model_zoo
 from detectron2.engine import DefaultPredictor
 from detectron2.config import get_cfg
 from detectron2.data import MetadataCatalog
-sys.path.insert(0, '/docker/Detic/third_party/CenterNet2/')
-sys.path.insert(0, "/docker/Detic")
-sys.path.insert(0, "/docker")
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'Detic/third_party/CenterNet2/'))
+detic_path = os.path.join(os.path.dirname(__file__), 'Detic')
+sys.path.insert(0, detic_path)
 from centernet.config import add_centernet_config
 from Detic.detic.config import add_detic_config
 from Detic.detic.modeling.utils import reset_cls_test
@@ -32,19 +32,19 @@ def FasterRCNN_predictor():
 
 # some model loading scripts are taken from below (MIT license)
 # https://github.com/bdaiinstitute/detic-sam
-def DETIC_predictor(detic_package_path="Detic", device="cuda", vocabulary="openimages", classes=None):
+def DETIC_predictor(device="cuda", vocabulary="openimages", classes=None):
     # Build the detector and download our pretrained weights
     cfg = get_cfg()
     add_centernet_config(cfg)
     add_detic_config(cfg)
-    cfg.merge_from_file("/docker/Detic/configs/Detic_LCOCOI21k_CLIP_SwinB_896b32_4x_ft4x_max-size.yaml")
+    cfg.merge_from_file(os.path.join(detic_path, "configs/Detic_LCOCOI21k_CLIP_SwinB_896b32_4x_ft4x_max-size.yaml"))
     cfg.MODEL.WEIGHTS = 'https://dl.fbaipublicfiles.com/detic/Detic_LCOCOI21k_CLIP_SwinB_896b32_4x_ft4x_max-size.pth'
     cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.5 # set threshold for this model
     cfg.MODEL.ROI_BOX_HEAD.ZEROSHOT_WEIGHT_PATH = 'rand'
     cfg.MODEL.ROI_HEADS.ONE_CLASS_PER_PROPOSAL = True # For better visualization purpose. Set to False for all classes.
     cfg.MODEL.DEVICE = device
     cwd = os.getcwd()
-    os.chdir(detic_package_path)
+    os.chdir(detic_path)
     detic_predictor = DefaultPredictor(cfg)
     if classes is None:
         metadata = default_vocab(detic_predictor, vocabulary=vocabulary)
@@ -98,7 +98,7 @@ def custom_vocab(detic_predictor, classes):
 
 
 if __name__ == "__main__":
-    predictor = DETIC_predictor(detic_package_path="/docker/Detic")
+    predictor = DETIC_predictor()
     # predictor = FasterRCNN_predictor()
     thing_classes = predictor.metadata.thing_classes
 

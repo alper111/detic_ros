@@ -1,0 +1,3 @@
+[submodule "src/Detic"]
+	path = src/Detic
+	url = https://github.com/facebookresearch/Detic.git
