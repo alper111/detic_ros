@@ -98,28 +98,37 @@ def custom_vocab(detic_predictor, classes):
 
 
 if __name__ == "__main__":
-    predictor = DETIC_predictor()
+    predictor = DETIC_predictor(classes=["walking cane", "ball", "hockey stick"])
     # predictor = FasterRCNN_predictor()
     thing_classes = predictor.metadata.thing_classes
 
     def detect_callback(req: DetectRequest):
         bridge = CvBridge()
         image = bridge.imgmsg_to_cv2(req.image, "bgr8")
+        requested_label = req.label
         with torch.inference_mode():
             outputs = predictor(image)
         res = DetectResponse()
         labels = outputs["instances"].pred_classes
         labels = [thing_classes[c] for c in labels]
+        indices = []
+        for i, x in enumerate(labels):
+            if x == requested_label:
+                indices.append(i)
+        labels = [labels[i] for i in indices]
+
         n = len(labels)
         res.labels = labels
-        res.scores = outputs["instances"].scores.cpu().numpy().tolist()
+        scores = outputs["instances"].scores.cpu().numpy().tolist()
+        res.scores = [scores[i] for i in indices]
         boxes = UInt16MultiArray()
         layout = MultiArrayLayout()
         layout.dim = [MultiArrayDimension("boxes", n, n*4),
                       MultiArrayDimension("dim", 4, 4)]
         layout.data_offset = 0
         boxes.layout = layout
-        boxes.data = outputs["instances"].pred_boxes.tensor.cpu().numpy().astype(np.uint16).reshape(-1).tolist()
+        data = outputs["instances"].pred_boxes.tensor.cpu().numpy().astype(np.uint16)
+        boxes.data = data[indices].reshape(-1).tolist()
         res.boxes = boxes
         return res
 
